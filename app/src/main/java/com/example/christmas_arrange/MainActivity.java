@@ -37,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     public void onSaveButtonClick(View view) {
         // 保存先のファイルパスの入力を促すダイアログ
 
+        // 保存先のファイルパスの入力を促すダイアログ
+
         // ダイアログを表示する
         new AlertDialog.Builder(this)
                 .setTitle("Christmas Arrange App")
@@ -51,10 +53,10 @@ public class MainActivity extends AppCompatActivity {
                 .show();
 
     }
-
     public void onPlayButtonClick(View view) {
 
     }
+
 
 
 
