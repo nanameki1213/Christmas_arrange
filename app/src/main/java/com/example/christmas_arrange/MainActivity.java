@@ -1,5 +1,6 @@
 package com.example.christmas_arrange;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
@@ -10,6 +11,7 @@ public class MainActivity extends AppCompatActivity {
 
     Button btnSave;
     Button btnPlay;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,9 +36,30 @@ public class MainActivity extends AppCompatActivity {
     // 保存ボタン
     public void onSaveButtonClick(View view) {
         // 保存先のファイルパスの入力を促すダイアログ
+
+        // ダイアログを表示する
+        new AlertDialog.Builder(this)
+                .setTitle("Christmas Arrange App")
+                .setMessage("保存先のパスを設定してください")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    // OKボタン押下時に実行したい処理を記述
+                })
+                .setNegativeButton("キャンセル", (dialog, which) -> {
+                    // キャンセルボタン押下時に実行したい処理を記述
+                })
+                .create()
+                .show();
+
     }
 
     public void onPlayButtonClick(View view) {
 
     }
+
+
+
+
+
+
+
 }
