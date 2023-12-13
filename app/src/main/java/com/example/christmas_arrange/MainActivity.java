@@ -2,9 +2,13 @@ package com.example.christmas_arrange;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.media.MediaParser;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -37,6 +41,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onPlayButtonClick(View view) {
-
+        MediaPlayer mp = MediaPlayer.create(this,R.raw.music_name);
+        if(!mp.isPlaying()){
+            mp.start();
+            btnPlay.setText("停止");
+        }else{
+            try {
+                //再生を停止
+                mp.stop();
+                mp.prepare();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            btnPlay.setText("再生");
+        }
     }
 }
