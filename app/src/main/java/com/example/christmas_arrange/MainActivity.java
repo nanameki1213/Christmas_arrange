@@ -9,12 +9,18 @@ import android.view.View;
 import android.widget.Button;
 
 import java.io.IOException;
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     Button btnSave;
     Button btnPlay;
 
+    private static final int PICK_FILE_REQUEST_CODE = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +60,31 @@ public class MainActivity extends AppCompatActivity {
                 throw new RuntimeException(e);
             }
             btnPlay.setText("再生");
+        }
+    }
+    public void onSelectButtonClick() {
+        // ファイルを選択するためのIntentを作成
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("audio/*"); // MP3ファイルを選択できるように指定
+
+        // ファイル選択のためのアクティビティを開始
+        startActivityForResult(intent, PICK_FILE_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_FILE_REQUEST_CODE && resultCode == RESULT_OK) {
+            // ユーザーがファイルを選択した場合
+            if (data != null) {
+                Uri selectedFileUri = data.getData();
+                if (selectedFileUri != null) {
+                    String filePath = selectedFileUri.getPath();
+                    // filePathを利用して必要な処理を実行
+                    Toast.makeText(this, "選択されたファイルのパス: " + filePath, Toast.LENGTH_SHORT).show();
+                }
+            }
         }
     }
 }
