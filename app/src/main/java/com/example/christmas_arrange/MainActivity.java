@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("保存先のパスを設定してください")
                 .setPositiveButton("OK", (dialog, which) -> {
                     // OKボタン押下時に実行したい処理を記述
-                    openFolderChooser();;
+                    openFolderChooser();
                 })
                 .setNegativeButton("キャンセル", (dialog, which) -> {
                     // キャンセルボタン押下時に実行したい処理を記述
