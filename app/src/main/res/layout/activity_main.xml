@@ -13,6 +13,13 @@
         android:textSize="35sp" />
 
     <Button
+        android:id="@+id/btnSelect"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onSelectButtonClick"
+        android:text="ファイルを選択" />
+
+    <Button
         android:id="@+id/btnGenerate"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
