@@ -1,25 +1,22 @@
 package com.example.christmas_arrange;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.media.MediaParser;
+import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
-import android.os.Bundle;
-import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     Button btnSave;
     Button btnPlay;
-
+    MediaPlayer mp;
     private static final int PICK_FILE_REQUEST_CODE = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnSave = findViewById(R.id.btnSave);
         btnPlay = findViewById(R.id.btnPlay);
+        mp = null;
 
     }
 
@@ -47,7 +45,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onPlayButtonClick(View view) {
-        MediaPlayer mp = MediaPlayer.create(this,R.raw.music_name);
+        if(mp == null) {
+            mp = MediaPlayer.create(this, R.raw.music_name);
+        }
         if(!mp.isPlaying()){
             mp.start();
             btnPlay.setText("停止");
