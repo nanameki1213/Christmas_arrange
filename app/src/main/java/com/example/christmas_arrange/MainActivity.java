@@ -18,7 +18,17 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     Button btnSave;
     Button btnPlay;
     MediaPlayer mp;
+    String filePath;
+    byte[] generated_mpeg;
     private static final int PICK_FILE_REQUEST_CODE = 1;
 
     @Override
@@ -43,7 +55,44 @@ public class MainActivity extends AppCompatActivity {
 
     // 追加ボタン
     public void onGenerateButtonClick(View view) {
+        OutputStream outputStream = null;
         // 入力ダイアログから得たファイルパスからmp3データを取り出し，ボディとして付けてサーバにPOSTする．
+        byte[] data = null;
+        try {
+            File file = new File(filePath);
+            FileInputStream fileInputStream = new FileInputStream(file);
+
+            data = new byte[(int)file.length()];
+            fileInputStream.read(data);
+
+            fileInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            URL url = new URL("http://localhost:8000");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+            con.setRequestMethod("POST");
+
+            con.setDoInput(true);
+            con.setDoOutput(true);
+
+            outputStream = con.getOutputStream();
+            outputStream.write(data);
+
+            int statusCode = con.getResponseCode();
+
+            if(statusCode == 200) {
+                showToast("OK");
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // その後定期的にGETをして処理の進み具合を取得し，処理完了してサーバからアレンジ済みのmp3データを受け取る．
 
         // mp3を受け取ったら再生と保存ボタンを有効にする．
@@ -113,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             Uri selectedFileUri = data.getData();
 
             // URIからファイルパスを取得
-            String filePath = getFilePathFromUri(selectedFileUri);
+            filePath = getFilePathFromUri(selectedFileUri);
 
             // 取得したファイルパスがnullでない場合、mp3ファイルであるかを確認
             if (filePath != null && filePath.toLowerCase().endsWith(".mp3")) {
