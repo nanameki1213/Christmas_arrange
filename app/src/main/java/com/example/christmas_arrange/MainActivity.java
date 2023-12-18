@@ -18,14 +18,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -55,18 +51,24 @@ public class MainActivity extends AppCompatActivity {
 
     // 追加ボタン
     public void onGenerateButtonClick(View view) {
-        OutputStream outputStream = null;
+        OutputStream outputStream;
         // 入力ダイアログから得たファイルパスからmp3データを取り出し，ボディとして付けてサーバにPOSTする．
+        showToast("filepath: " + filePath);
         byte[] data = null;
         try {
+            showToast("File input stream");
+
             File file = new File(filePath);
             FileInputStream fileInputStream = new FileInputStream(file);
 
             data = new byte[(int)file.length()];
             fileInputStream.read(data);
 
+            showToast("Open file: " + filePath);
             fileInputStream.close();
         } catch (IOException e) {
+            showToast(e.getMessage());
+            System.err.println(e.getMessage());
             e.printStackTrace();
         }
 
@@ -78,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
 
             con.setDoInput(true);
             con.setDoOutput(true);
+
+            con.connect();
+            showToast("start Connection");
 
             outputStream = con.getOutputStream();
             outputStream.write(data);
