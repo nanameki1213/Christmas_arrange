@@ -18,7 +18,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -196,13 +200,52 @@ public class MainActivity extends AppCompatActivity {
         }
         return null;
     }
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////保存////////////////////////////////////////////////////////////////////////////
     private void handleSelectedFolder(String folderPath) {
         // 選択されたフォルダのパスを使用して処理を行う
         // 例: パスをログに表示
         System.out.println("Selected Folder Path: " + folderPath);
+
+        // R.raw.music_name のリソースファイルを指定した保存先にコピーする
+        copyRawResourceToDestination(R.raw.music_name, folderPath);
     }
 
+    private void copyRawResourceToDestination(int rawResourceId, String destinationPath) {
+        InputStream inputStream = getResources().openRawResource(rawResourceId);
+        OutputStream outputStream = null;
+
+        try {
+            File destinationFile = new File(destinationPath, "music_name.mp3");
+            outputStream = new FileOutputStream(destinationFile);
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+
+            Toast.makeText(this, "File copied successfully", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error copying file", Toast.LENGTH_SHORT).show();
+        } finally {
+            try {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////保存のパスを変えるには、R.raw.music_nameの所を変える。///////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
     // ファイルパスを取得するヘルパーメソッド
     private String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
         Cursor cursor = null;
