@@ -210,15 +210,21 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 String[] split = originalId.split(":");
-                String id = originalId;
-                if (split.length > 1) {
-                    id = split[1];
-                }
+                int splitIndex = split.length - 1;
+                String id = split[splitIndex];
+                showToast(id);
+
+                // 文字列からハッシュを生成
+                String originalString = id;
+                int hashCode = originalString.hashCode();
+
+                // hashCodeが負の場合、正の数に変換
+                long uniqueId = (long) hashCode & 0xffffffffL;
 
                 try {
                     final Uri contentUri = ContentUris.withAppendedId(
                             Uri.parse("content://downloads/public_downloads"),
-                            Long.parseLong(id)
+                            uniqueId
                     );
                     return getDataColumn(this, contentUri, null, null);
                 } catch (NumberFormatException e) {
@@ -252,11 +258,8 @@ public class MainActivity extends AppCompatActivity {
             return uri.getPath();
         }
 
-        showToast("return Null");
-
         return null;
     }
-
     private void openFolderChooser() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         startActivityForResult(intent, PICK_FOLDER_REQUEST_CODE);
@@ -290,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
             cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
             if (cursor != null && cursor.moveToFirst()) {
                 final int column_index = cursor.getColumnIndexOrThrow(column);
+                showToast("get String from Cursor Object");
                 return cursor.getString(column_index);
             }
         } finally {
