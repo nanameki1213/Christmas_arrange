@@ -1,6 +1,7 @@
 package com.example.christmas_arrange;
 
 import android.app.Activity;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResult;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -176,9 +178,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 showToast("Please select an MP3 file.");
             }
-        }
-
-        if (requestCode == PICK_FOLDER_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
+        } else if (requestCode == PICK_FOLDER_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
             Uri treeUri = data.getData();
             if (treeUri != null) {
                 String selectedFolderPath = getDocumentPath(treeUri);
@@ -201,9 +201,30 @@ public class MainActivity extends AppCompatActivity {
                     return Environment.getExternalStorageDirectory() + "/" + split[1];
                 }
             } else if (isDownloadsDocument(uri)) {
-                final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = Uri.parse("content://downloads/public_downloads/" + id);
-                return getDataColumn(this, contentUri, null, null);
+                final String originalId;
+                try {
+                    originalId = DocumentsContract.getDocumentId(uri);
+                } catch (IllegalArgumentException e) {
+                    showToast("Invalid URI");
+                    return null;
+                }
+
+                String[] split = originalId.split(":");
+                String id = originalId;
+                if (split.length > 1) {
+                    id = split[1];
+                }
+
+                try {
+                    final Uri contentUri = ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"),
+                            Long.parseLong(id)
+                    );
+                    return getDataColumn(this, contentUri, null, null);
+                } catch (NumberFormatException e) {
+                    showToast("Invalid ID format");
+                    return null;
+                }
             } else if (isMediaDocument(uri)) {
                 final String docId = DocumentsContract.getDocumentId(uri);
                 final String[] split = docId.split(":");
@@ -230,6 +251,8 @@ public class MainActivity extends AppCompatActivity {
             // File
             return uri.getPath();
         }
+
+        showToast("return Null");
 
         return null;
     }
