@@ -1,41 +1,57 @@
 package com.example.christmas_arrange;
 
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
+import android.Manifest;
 import android.app.Activity;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PICK_FOLDER_REQUEST_CODE = 2;
+    private static final int PERMISSION_WRITE_EX_STR = 1;
 
+    private Handler handler = new Handler();
     Button btnSave;
     Button btnPlay;
     MediaPlayer mp;
     String filePath;
+    Uri file_uri;
+    String url_str;
+    byte[] original_mpeg;
     byte[] generated_mpeg;
     private static final int PICK_FILE_REQUEST_CODE = 1;
 
@@ -49,62 +65,117 @@ public class MainActivity extends AppCompatActivity {
         btnPlay = findViewById(R.id.btnPlay);
         mp = null;
 
+        original_mpeg = null;
+
+        url_str = "http://10.0.2.2:8000/";
+
+        if(Build.VERSION.SDK_INT >= 23) {
+            if(ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_CONTACTS
+                },PERMISSION_WRITE_EX_STR);
+            }
+        }
+
     }
 
     // 追加ボタン
     public void onGenerateButtonClick(View view) {
-        OutputStream outputStream;
-        // 入力ダイアログから得たファイルパスからmp3データを取り出し，ボディとして付けてサーバにPOSTする．
-        showToast("filepath: " + filePath);
-        byte[] data = null;
         try {
-            showToast("File input stream");
-
-            File file = new File(filePath);
-            FileInputStream fileInputStream = new FileInputStream(file);
-
-            data = new byte[(int)file.length()];
-            fileInputStream.read(data);
-
-            showToast("Open file: " + filePath);
-            fileInputStream.close();
+            InputStream is = getContentResolver().openInputStream(file_uri);
+            original_mpeg = new byte[is.available()];
+            String readBytes = String.format(Locale.US, "read bytes = %d", is.read(original_mpeg));
+            Log.e(TAG, readBytes);
+            is.close();
         } catch (IOException e) {
             showToast(e.getMessage());
-            System.err.println(e.getMessage());
             e.printStackTrace();
         }
+        showToast("opened file");
 
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int statusCode = postAPI();
+                String readBytes = String.format(Locale.US, "status code = %d", statusCode);
+                Log.e(TAG, readBytes);
+            }
+        });
+        thread.start();
+
+        // その後定期的にGETをして処理の進み具合を取得し，処理完了してサーバからアレンジ済みのmp3データを受け取る．
+
+        // mp3を受け取ったら再生と保存ボタンを有効にする．
+        if(generated_mpeg != null) {
+            btnPlay.setEnabled(true);
+            btnPlay.setText("再生");
+            mp = null;
+            btnSave.setEnabled(true);
+        }
+    }
+
+    public int postAPI() {
+        HttpURLConnection con = null;
+        OutputStream outputStream = null;
+        int statusCode = 0;
         try {
-            URL url = new URL("http://localhost:8000");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            URL url = new URL(url_str);
+            con = (HttpURLConnection) url.openConnection();
 
+            con.setConnectTimeout(10000);
+            con.setReadTimeout(10000);
+            con.addRequestProperty("User-Agent", "Android");
+            con.addRequestProperty("Accept-Language", Locale.getDefault().toString());
+            con.addRequestProperty("Content-Type", "audio/mpeg");
             con.setRequestMethod("POST");
 
             con.setDoInput(true);
             con.setDoOutput(true);
 
             con.connect();
-            showToast("start Connection");
 
             outputStream = con.getOutputStream();
-            outputStream.write(data);
+            outputStream.write(original_mpeg);
 
-            int statusCode = con.getResponseCode();
+            statusCode = con.getResponseCode();
 
-            if(statusCode == 200) {
-                showToast("OK");
+            if (statusCode == 200) {
+                InputStream is = con.getInputStream();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                try {
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        baos.write(buffer, 0, bytesRead);
+                    }
+
+                    // InputStreamとByteArrayOutputStreamを閉じる
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        is.close();
+                        baos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                generated_mpeg = baos.toByteArray();
+
+                String readBytes = String.format(Locale.US, "read bytes = %d", generated_mpeg.length);
+                Log.e(TAG, readBytes);
             }
+
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // その後定期的にGETをして処理の進み具合を取得し，処理完了してサーバからアレンジ済みのmp3データを受け取る．
-
-        // mp3を受け取ったら再生と保存ボタンを有効にする．
-        btnPlay.setEnabled(true);
-        btnSave.setEnabled(true);
+        return statusCode;
     }
 
     // 保存ボタン
@@ -127,11 +198,32 @@ public class MainActivity extends AppCompatActivity {
                 .create()
                 .show();
 
+        mp.release();
+
     }
 
-    public void onPlayButtonClick(View view) {
+    public void onPlayButtonClick(View view) throws IOException {
         if (mp == null) {
-            mp = MediaPlayer.create(this, R.raw.music_name);
+            Context context = view.getContext();
+            Path path = null;
+            try {
+                path = Files.createTempFile("temp", ".mp3");
+                OutputStream out = Files.newOutputStream(path);
+                out.write(generated_mpeg);
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                Files.deleteIfExists(path);
+            }
+            mp = new MediaPlayer();
+            try {
+                showToast(path.toString());
+                mp.setDataSource(path.toString());
+                mp.prepare();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         if (!mp.isPlaying()) {
             mp.start();
@@ -170,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
 
             // URIからファイルパスを取得
             filePath = getFilePathFromUri(selectedFileUri);
+            file_uri = selectedFileUri;
 
             // 取得したファイルパスがnullでない場合、mp3ファイルであるかを確認
             if (filePath != null && filePath.toLowerCase().endsWith(".mp3")) {
@@ -214,23 +307,25 @@ public class MainActivity extends AppCompatActivity {
                 String id = split[splitIndex];
                 showToast(id);
 
-                // 文字列からハッシュを生成
-                String originalString = id;
-                int hashCode = originalString.hashCode();
+                return id;
+//
+//                // 文字列からハッシュを生成
+//                String originalString = id;
+//                int hashCode = originalString.hashCode();
+//
+//                // hashCodeが負の場合、正の数に変換
+//                long uniqueId = (long) hashCode & 0xffffffffL;
 
-                // hashCodeが負の場合、正の数に変換
-                long uniqueId = (long) hashCode & 0xffffffffL;
-
-                try {
-                    final Uri contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"),
-                            uniqueId
-                    );
-                    return getDataColumn(this, contentUri, null, null);
-                } catch (NumberFormatException e) {
-                    showToast("Invalid ID format");
-                    return null;
-                }
+//                try {
+//                    final Uri contentUri = ContentUris.withAppendedId(
+//                            Uri.parse("content://downloads/public_downloads"),
+//                            uniqueId
+//                    );
+//                    return getDataColumn(this, contentUri, null, null);
+//                } catch (NumberFormatException e) {
+//                    showToast("Invalid ID format");
+//                    return null;
+//                }
             } else if (isMediaDocument(uri)) {
                 final String docId = DocumentsContract.getDocumentId(uri);
                 final String[] split = docId.split(":");
